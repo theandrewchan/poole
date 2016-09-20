@@ -15,7 +15,7 @@ There are currently two themes built on Poole:
 * [Hyde](http://hyde.getpoole.com)
 * [Lanyon](http://lanyon.getpoole.com)
 
-{% sidenote %}Learn more and contribute on [GitHub](https://github.com/poole).{% endsidenote %}
+{% sidenote %}Test Sidenote: Learn more and contribute on [GitHub](https://github.com/poole).{% endsidenote %}
 
 ### What's included
 
