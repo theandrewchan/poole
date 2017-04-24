@@ -1,0 +1,50 @@
+@import "utils/utils";
+@import "constants";
+
+.hero {
+    @include flex(center, center, column);
+    margin-bottom: 4rem;
+    &:hover {
+        a {
+            color: #f50;
+        }
+    }
+    &logo {
+        text-transform: uppercase;
+    }
+    &links {
+        font-family: sans-serif;
+        min-width: 8rem;
+        text-transform: lowercase;
+        @include flex(center, space-between, row);
+    }
+}
+
+.item {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+    margin-bottom: 2rem;
+    h2 {
+        transition: color 0.2s ease-in-out;
+        color: #333B3F;
+    }
+    h3 {
+        transition: color 0.2s ease-in-out;
+        font-family: sans-serif;
+        font-weight: 400;
+        color: #A8A8A8;
+    }
+
+    &:hover {
+        h2 {
+            color: #f50;
+        }
+        h3 {
+            color: rgba(86,90,92,1);
+        }
+    }
+
+    img {
+        box-shadow: $button-shadow;
+    }
+}
