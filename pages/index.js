@@ -9,6 +9,7 @@ import styles from "../css/index.module.scss";
 
 import soundfoundry from "../assets/soundfoundry1.jpg";
 import tweetrunner from "../assets/tweet-runner.png";
+import tiles from "../assets/tiles.png";
 
 export default class Index extends React.Component {
   render() {
@@ -26,7 +27,7 @@ export default class Index extends React.Component {
                 <Link to={prefixLink("/writing/")}>writing</Link>
             </div>
         </div>
-        <Link to={prefixLink("/soundfoundry")}>
+        <a href={"https://beautician-edward-85868.netlify.com/"}>
             <div className={styles.item}>
                 <div>
                     <h2>SoundFoundry</h2>
@@ -34,10 +35,10 @@ export default class Index extends React.Component {
                         A fully featured music player inspired by SoundCloud. Built with React + Redux.
                     </h3>
                 </div>
-                <img src={soundfoundry} />
+                <img src={soundfoundry} className={styles.itemimg} />
             </div>
-        </Link>
-        <Link to={prefixLink("/tweetrunner")}>
+        </a>
+        <a href={"https://spooky-broomstick-5831.herokuapp.com/"}>
             <div className={styles.item}>
                 <div>
                     <h2>Tweet Runner</h2>
@@ -45,9 +46,9 @@ export default class Index extends React.Component {
                         Web game that responds to Twitter. Built in 24 hours + 3rd place winner of Berkeley CSUA Hackathon.
                     </h3>
                 </div>
-                <img src={tweetrunner} />
+                <img src={tweetrunner} className={styles.itemimg} />
             </div>
-        </Link>
+        </a>
       </div>
     );
   }

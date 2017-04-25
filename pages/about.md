@@ -10,6 +10,6 @@ Last summer I wrote software for my [self-driving research team at HERE](https:/
 
 I \<3 React! I'm a contributor to [react-chartjs-2](https://github.com/gor181/react-chartjs-2) and recently made a (almost full) copy of the SoundCloud client for educational purposes. Check out a live statically hosted version [here](https://theandrewchan.github.io/public/soundfoundry.html). There's a tonnn of other projects on my github as well - see [farmr](https://github.com/theandrewchan/farmr), a React Native app for farmers I made at HackDavis 2016, or [tweetrunner](https://github.com/theandrewchan/tweet-runner), a little game made in 18 hours with vanilla JavaScript that responds to the live twitter stream.
 
-Check out my [resume](https://theandrewchan.github.io/public/resume.pdf) or my [github](https://github.com/theandrewchan) for more.
+Check out my [resume](https://theandrewchan.github.io/cv.pdf) or my [github](https://github.com/theandrewchan) for more.
 
 Also, feel free to say hi at andrewkchan@berkeley.edu!
