@@ -9,7 +9,9 @@ import styles from "../css/index.module.scss";
 
 import soundfoundry from "../assets/soundfoundry1.jpg";
 import tweetrunner from "../assets/tweet-runner.png";
-import tiles from "../assets/tiles.png";
+import regress from "../assets/regress.jpg";
+//import tiles from "../assets/tiles.png";
+
 
 export default class Index extends React.Component {
   render() {
@@ -49,6 +51,17 @@ export default class Index extends React.Component {
                 <img src={tweetrunner} className={styles.itemimg} />
             </div>
         </a>
+        <Link to={prefixLink("/writing/")}>
+            <div className={styles.item}>
+                <div>
+                    <h2>Other Cool Stuff</h2>
+                    <h3>
+                        Soon!
+                    </h3>
+                </div>
+                <img src={regress} className={styles.itemimg} />
+            </div>
+        </Link>
       </div>
     );
   }
