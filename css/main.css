@@ -79,6 +79,7 @@ a:hover {
     font-family: georgia, serif;
 }
 blockquote {
+    margin-top: 3em;
     line-height: 150%;
     color: #555459;
     font-family: georgia, serif;
