@@ -119,6 +119,7 @@ var chartInfo = {
       "department_id": 2,
       "name": "61B",
       "link": "\/courseguides\/CS\/61B",
+      "image": "/assets/here.jpg",
       "prereqs": [
         {
           "id": 1,
@@ -137,6 +138,7 @@ var chartInfo = {
       "department_id": 2,
       "name": "61C",
       "link": "\/courseguides\/CS\/61C",
+      "image": "/assets/microchips.jpg",
       "prereqs": [
         {
           "id": 2,
@@ -161,8 +163,8 @@ var chartInfo = {
       "department_id": 2,
       "name": "70",
       "link": "\/courseguides\/CS\/70",
+      "image": "/assets/euler.png",
       "prereqs": [
-
       ],
       "type_id": 1,
       "bias_x": 0,
@@ -372,6 +374,7 @@ var chartInfo = {
       "department_id": 2,
       "name": "184",
       "link": "\/courseguides\/CS\/184",
+      "image": "/assets/calcunaut1.png",
       "prereqs": [
         {
           "id": 21,

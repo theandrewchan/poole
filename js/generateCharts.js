@@ -90,7 +90,7 @@ var generateChart = function(info, loc, department_id) {
             .attr("width", NODE_RADIUS)
             .append("image")
             .attr("x", -NODE_RADIUS)
-            .attr("y", 0)
+            .attr("y", -NODE_RADIUS)
             .attr("height", NODE_RADIUS*4)
             .attr("width", NODE_RADIUS*4)
             .attr("xlink:href", d.image);
