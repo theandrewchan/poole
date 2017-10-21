@@ -4,6 +4,7 @@
         <meta charset="utf-8">
         <title>Andrew Chan - About Me</title>
         <link rel="stylesheet" href="/css/main.css">
+        <link rel="stylesheet" href="/css/chart.css">
     </head>
     <body>
         <div class="content">
@@ -40,6 +41,16 @@
 
                 </p>
             </div>
+            <div id="chart">
+            </div>
         </div>
+        <script src="/js/vendor.js"></script>
+        <script src="/js/generateCharts.js"></script>
+        <script src="/js/config.js"></script>
+        <script>
+            window.onload = function() {
+                generateChart(chartInfo, $("#chart"), 2);
+            };
+        </script>
     </body>
 </html>
