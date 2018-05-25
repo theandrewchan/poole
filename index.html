@@ -62,6 +62,23 @@
                     <img src="/assets/tweet-runner.png" class="itemimg" />
                 </div>
             </a>
+            <a href="/demos/bezier.html">
+                <div class="item">
+                    <div>
+                        <h2>Bezier Curve Playground</h2>
+                        <h3>
+                            A quick intro to the math behind Bezier curves!
+                        </h3>
+                    </div>
+                    <video src="/assets/bezier_preview.mp4" class="itemimg" autoplay="true" type="video/mp4"></video>
+                    <script>
+                    document.getElementsByTagName('video')[0].onended = function () {
+                      this.load();
+                      this.play();
+                    };
+                    </script>
+                </div>
+            </a>
             <a href="https://github.com/theandrewchan">
                 <div class="item">
                     <div>
