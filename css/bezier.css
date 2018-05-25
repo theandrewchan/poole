@@ -12,3 +12,9 @@ g.pointer:hover {
 svg {
   overflow: visible;
 }
+g > .hidden-mouseover {
+  opacity: 0;
+}
+g:hover > .hidden-mouseover {
+  opacity: 1;
+}
