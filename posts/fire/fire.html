@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Simulating Fluids, Fire, and Smoke</title>
+  <script src="https://distill.pub/template.v1.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.css" integrity="sha384-9eLZqc9ds8eNjO3TmqPeYcDj8n+Qfa4nuSiGYa6DjLNcv9BtN69ZIulL9+8CqC9Y" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.js" integrity="sha384-K3vbOmF2BtaVai+Qk37uypf7VrgBubhQreNQe9aGsz9lB63dIFiQVlJbr92dw2Lx" crossorigin="anonymous"></script>
+
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-109333230-1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-109333230-1');
+  </script>
+
+  <script type="text/front-matter">
+    title: "Simulating Fluids, Fire, and Smoke in Real-Time"
+    description: "An overview of math, algorithms, and methods involved in simulating fluids like fire and smoke in real-time."
+    authors:
+    - Andrew Chan: http://theandrewchan.github.io
+    affiliations:
+    - UC Berkeley: https://eecs.berkeley.edu
+  </script>
+</head>
+<body>
+<dt-article>
+  <h1>Simulating Fluids, Fire, and Smoke in Real-Time</h1>
+  <h2>An overview of math, algorithms, and methods involved in simulating fluids like fire and smoke in real-time.</h2>
+  <dt-byline></dt-byline>
+  <p>
+    Fire has always been hard to simulate.
+    As a fluid, it shares the challenging dynamics of oil, water, and smoke, but with the added
+    complexity of much higher turbulence, detail, and speeds. In particular, the
+    rapid thermal expansion of hot gases that characterize flames need to be simulated at very high
+    resolution to be accurate, so real-time simulation of fire has long been computationally infeasible.
+  </p>
+  <p>
+    As a result, many approaches to animating believable, realistic fire have focused on using various shortcuts to
+    approximate or bypass modeling its dynamics. Even in movies - where visual effects can be pre-rendered
+    and simulation speed is not as much of an issue - physically-based fire simulation only recently
+    became common. For instance, <i>The Lord of the Rings</i> trilogy <dt-cite key="Aitken:2004:LRV:1103900.1103911"></dt-cite> used sprite-based techniques as an
+    "intelligent hack" to render the Balrog's fire because the full fluid-dynamics based simulation was too computationally
+    expensive; turnaround time on rendering shots was too slow and thus not directable.
+    In real-time applications like video games, fire, smoke, and explosion effects have pretty much exclusively
+    used sprite-based or (non-physical) procedural approaches.
+  </p>
+  <p>
+    On the other hand, the explosion in GPU computing power in the last decade has made fast fluid simulation viable and even easy.
+    As it turns out, modeling fluid dynamics is embarrassingly parallelizable for most practical purposes, and the basic
+    algorithms are straightforward to implement on the GPU, with Harris's 2005 chapter in <i>GPU Gems</i> offering a great
+    basic tutorial <dt-cite key="harris2005fast"></dt-cite>. In 2009, Industrial Light and Magic's awesome fire in
+    <i>Harry Potter</i> used the GPU for modeling and rendering, and was both fast and directable for the first time <dt-cite key="horvath2009directable"></dt-cite>.
+    Real-time fire is a thing now; in 2014, NVIDIA released FlameWorks, a system for generating fire, smoke, and explosion effects for games.
+  </p>
+  <p>
+    So how do we simulate fire on the GPU? To do so, we'll need to understand some basic fluid dynamics,
+    parallel algorithms for modeling fluids, and the combustion models that define fire and smoke. We'll assume a reasonable
+    background in vector calculus and differential equations (know how to take the gradient of a vector). Numerical methods
+    (know what a finite difference is) will be helpful as well. Finally, we'll be implementing algorithms throughout
+    using the awesome power of WebGL in the browser.
+  </p>
+  <dt-byline></dt-byline>
+  <h2>1. Fluid Simulation</h2>
+  <p>
+    Before we simulate fire, we'll first tackle the more general problem of simulating a fluid. We'll also make the assumptions
+    that our fluid is <a href="https://en.wikipedia.org/wiki/Incompressible_flow">incompressible</a> and
+    <a href="https://en.wikipedia.org/wiki/Inviscid_flow">inviscid</a>, which are fairly reasonable assumptions that will vastly simplify our problem.
+  </p>
+  <h3>1.1 Basic Fluid Dynamics</h3>
+  <p>
+    Suppose \(D\) is a region in space filled with a fluid. At any point \( \mathbf{x} \in D \) and time \(t\), the fluid has velocity \(\mathbf{u}(\mathbf{x}, t)\).
+    Computationally, we can represent the 2D velocity field \( \mathbf{u} \) with an \( N \times N \) grid, where the equally spaced grid points give the value of
+    the velocity field at that point in space.
+    $$
+    \text{Grid diagram here}
+    $$
+  </p>
+  <p>
+    What will happen if we put a drop of dye in the fluid?
+  </p>
+  <p>
+    Let's define a scalar field \( \psi (\mathbf{x}, t) \) as the density of the dye at any point in space and time.
+    The transport of quantities like \( \psi \) within a fluid by the fluid's velocity is called <b>advection</b>.
+    Given some fluid's velocity field and an initial density field of our dye, we'd like to see how the dye's density everywhere
+    evolves over time by simulating its advection through the fluid.
+  </p>
+  <p><b>A Naive Method for Advection</b></p>
+  <p>
+    One idea to compute the advection is to take each grid point, move forward the direction and distance that would be traveled
+    by a particle at the grid point's velocity and the simulation timestep \( \Delta t \), and update the grid point nearest to where the particle lands:
+
+    $$
+    \psi (\mathbf{x} + \mathbf{u} (\mathbf{x}, t), t + \Delta t) = \psi (\mathbf{x}, t)
+    $$
+  </p>
+  <p>
+    This is in fact Euler's method, a simple method for forward integration of ODEs. Unfortunately, this approach has 2 issues:
+  </p>
+  <ol>
+    <li>
+      It can't be implemented in a parallel way, since 2 grid points can end up in the same target point after forward evaluation.
+    </li>
+    <li>
+      More importantly, for many problems it's unstable for time steps above some number, causing \( \psi \) to blow up.
+      This is an issue for Euler <a href="https://en.wikipedia.org/wiki/Euler_method#Numerical_stability">in general</a>, making it unsuitable for most situations.
+    </li>
+  </ol>
+  <p><b>A Partial Differential Equation for Advection</b></p>
+  <p>
+    This whole time we've been implicitly solving a PDE! If we're going to derive a stable method for advection, we'll need to
+    first derive an explicit expression for our PDE. Let's start from first principles.
+  </p>
+  <p>
+    Consider a fixed region of space \(W\) (that is, \(W\) does <i>not</i> vary with time). The total mass of dye within \(W\)
+    is \( \int_{W} \psi dV\). Over time, the change in mass is:
+
+    $$
+    \frac{d}{dt} \int_{W} \psi (\mathbf{x}, t) dV = \int_{W} \frac{\delta}{\delta t} \psi (\mathbf{x}, t) dV \\
+    $$
+
+    Now, letting \(S\) denote the surface of \(W\) and \( \mathbf{n} \) the outward normal vector defined along the surface, we can examine
+    the mass flow rate through the surface of \(W\). In particular, observe that the volume flow rate - the <i>volume</i> of fluid that
+    flows through per second </i> - across \(S\) per unit area is \( \mathbf{u} \cdot \mathbf{n} \) and the mass flow rate per unit area
+    is \( \psi \mathbf{u} \cdot \mathbf{n} \).
+
+    $$
+    \text{surface flow diagram here}
+    $$
+  </p>
+  <p>
+    This gives us the <b>law of conservation of mass</b> in integral form:
+
+    $$
+    \frac{d}{dt} \int_{W} \psi dV = - \int_{S} \psi \mathbf{u} \cdot \mathbf{n} dA \tag{1}
+    $$
+
+    Can we get rid of the integrals and say something similar for points? By divergence theorem, the above is equivalent to
+
+    $$
+    \int_{W} [\frac{\delta \psi}{\delta t} + \nabla \cdot (\psi \mathbf{u})] dV = 0
+    $$
+
+    Then for a unit subregion \( W = dV \), we can say that
+
+    $$
+    \frac{\delta \psi}{\delta t} + \nabla \cdot (\psi \mathbf{u}) = 0 \tag{2}
+    $$
+
+    Take a moment to note that the above equation isn't really saying anything new and is essentially a differential form
+    of the law of conservation of mass. But importantly, we have an explicit PDE that we need to solve for \( \psi \)!
+  </p>
+  <p>
+    Hmm... we could stop here, but we might be able to simplify this more. Specifically, it looks like we could isolate out
+    a term \( \nabla \cdot \mathbf{u} \) that goes to zero because of incompressibility.
+
+    $$
+    \begin{aligned}
+    &\frac{\delta \psi}{\delta t} = - \nabla \cdot (\psi \mathbf{u}) \\
+    &= - (\frac{\delta}{\delta x} \psi u + \frac{\delta}{\delta y} \psi v) \\
+    &= - (\frac{\delta \psi}{\delta x} u + \frac{\delta u}{\delta x} \psi +  \frac{\delta \psi}{\delta y} v + \frac{\delta v}{\delta y} \psi) \\
+    &= - (\psi \nabla \cdot \mathbf{u} + \mathbf{u} \cdot \nabla \psi) \\
+    &= - \mathbf{u} \cdot \nabla \psi \\
+    \end{aligned}
+    $$
+
+    Applying our incompressibility constraint \( \nabla \cdot \mathbf{u} = 0 \) at the end yields a scalar PDE, the first of our <b>incompressible flow advection equations</b>:
+
+    $$
+    \frac{\delta \psi}{\delta t} = \text{advection} (\mathbf{u}, \psi) = - \mathbf{u} \cdot \nabla \psi \tag{3a}
+    $$
+    $$
+    \frac{\delta \mathbf{v}}{\delta t} = \text{advection} (\mathbf{u}, \mathbf{v}) = - \mathbf{u} \cdot \nabla \mathbf{v} \tag{3b}
+    $$
+
+    Eq. 3b for advecting a vector field \( \mathbf{v} \) through our velocity field can be derived similarly to the scalar advection equation.
+  </p>
+  <p><b>A Stable Method for Advection</b></p>
+  <p>
+    Let's look closely at eqn. (3a):
+    $$
+    \frac{\delta \psi}{\delta t} = - \mathbf{u} \cdot \nabla \psi
+    $$
+  </p>
+  <p>
+    Notice that the right-hand term is a directional derivative in the \( -\mathbf{u} \) direction. This gives us a wonderful new method for
+    advecting \( \psi \) by an incompressible fluid - starting at a grid point \( \mathbf{x} \), trace the fluid velocity <i>backwards</i>,
+    replacing the value at our original point by the value that we land on (if we land between points, we can interpolate):
+
+    $$
+    \psi (\mathbf{x}, t + \Delta t) = \psi (\mathbf{x} - \mathbf{u} (\mathbf{x}, t), t)
+    $$
+  </p>
+  <p>
+    This method is called
+    <b>Semi-Lagrangian advection</b> and made waves (hah) when it was invented in 1999 by Jos Stam <dt-cite key="stam1999stable"></dt-cite>.
+    Like Euler, it's first-order accurate, but has exactly the additional properties we need:
+  </p>
+  <ol>
+    <li>
+      It's extremely easy to parallelize because each grid point only gets updated once per iteration.
+    </li>
+    <li>
+      It's <i>unconditionally stable</i>. Why? Observe that for any grid point, the maximum value it can get updated to is the maximum value
+      of all the grid points.
+    </li>
+  </ol>
+  <p>
+    For a fixed velocity field, it works great. Click anywhere below to drop some dye in the flow:
+    $$
+    \text{fixed advection here}
+    $$
+  </p>
+  <h3>1.2 The Navier-Stokes Equations</h3>
+  <p>
+    So far we've found a model that describes how scalar properties of a fluid evolve over time, assuming the flow is fixed. What about the fluid flow itself -
+    how does the velocity field \( \mathbf{u} \) affect itself over time?
+  </p>
+  <p>
+    The <b>Navier-Stokes equations</b><dt-fn>For a detailed derivation, see Chapter 1.3 of Chorin and Marsden (1993).</dt-fn>
+    for incompressible flow define how the velocity at any point in a fluid evolves over time:
+
+    $$
+    \frac{\delta \mathbf{u}}{\delta t} =
+    {\underbrace{ - \mathbf{u} \cdot \nabla \mathbf{u} }_\text{self-advection}} +
+    {\underbrace{ \mu^2 \nabla \mathbf{u} }_\text{diffusion}} -
+    {\underbrace{ \nabla p }_\text{pressure}} +
+    {\underbrace{ \textbf{F} }_\text{ext. forces}}
+    \tag{4}
+    $$
+    $$
+    \text{where~}\forall t{~,~} \nabla \cdot \mathbf{u} = 0
+    $$
+
+    Here, the constant \( \mu \) is the fluid's viscosity and \( \mathbf{F} \) are
+    external forces. But we assumed earlier that our fluid was <a href="https://en.wikipedia.org/wiki/Inviscid_flow">inviscid</a>,
+    so \( \mu = 0 \), and we can just ignore external forces for now. So we're left with two terms - (self) advection and pressure.
+    If at every timestep we numerically compute these terms and add them, we can numerically simulate all the dynamics of our fluid!
+  </p>
+  <p>
+    Let's take a closer look at each of these.
+  </p>
+  <p><b>Self-Advection</b></p>
+  <p>
+    From our incompressible advection equations, we can see that the self-advection term is the advection of the fluid's velocity
+    field \( \mathbf{u} \) through itself:
+
+    $$
+    \text{advection} (\mathbf{u}, \mathbf{u}) = - \mathbf{u} \cdot \nabla \mathbf{u} \tag{5}
+    $$
+
+    Technically, this is called <i>convection</i>, and we can compute it using our Semi-Lagrangian method from earlier.
+  </p>
+  <p>
+    So where do the other terms come from? Well, advecting \( \mathbf{u} \) through itself yields a new velocity field
+    \( \mathbf{u}^\prime \) that doesn't necessarily still follow the incompressibility constraint:
+
+    $$
+    \mathbf{u}^\prime = \mathbf{u} - \mathbf{u} \cdot \nabla \mathbf{u}
+    $$
+
+    But this doesn't make any sense, because physically, an incompressible fluid should remain incompressible.
+    So the other term in Navier-Stokes needs to correct this somehow.
+  </p>
+  <p>
+    Mathematically, we might say that \( \mathbf{u}^\prime \) is outside of the space of zero-divergence vector fields,
+    and we need to project it back into that space to get the correct velocity field \( \mathbf{u}^* \) where
+    \( \nabla \cdot \mathbf{u}^* = 0 \).
+    <dt-fn>
+      The linear algebraic terminology isn't an accident. The
+      <a href="https://en.wikipedia.org/wiki/Helmholtz_decomposition">Helmholtz-Hodge decomposition</a> tells us that
+      any vector field \( \mathbf{u}^\prime \) can be <i>uniquely</i> decomposed into the sum of two orthogonal components:
+
+      $$
+      \mathbf{u}^\prime = \mathbf{u}^* + \nabla p
+      $$
+
+      where \( \mathbf{u}^* \) is divergence-free.
+    </dt-fn>
+    That's where the pressure term comes in.
+  </p>
+  <p><b>Pressure</b></p>
+  <p>
+    After advecting our fluid's velocity field through itself, we get a candidate velocity field \( \mathbf{u}^\prime \) that
+    isn't necessarily divergence-free. But we know that the end result of Navier-Stokes will give us a divergence-free field,
+    so we can assume that there exists a pressure field \( p \) that will counteract the nonzero divergence:
+    <dt-fn>
+      The uniqueness of the Helmholtz-Hodge decomposition means that the pressure field will also be unique.
+    </dt-fn>
+
+    $$
+    \nabla \cdot (\mathbf{u}^\prime - \nabla p) = 0
+    $$
+
+    We rearrange this to get
+
+    $$
+    \nabla^2 p = \nabla \cdot \mathbf{u}^\prime \tag{5}
+    $$
+
+    which is a type of equation known as a <i>Poisson equation</i>, where the left-hand side is
+    the <a href="https://en.wikipedia.org/wiki/Laplace_operator">Laplacian</a> of an unknown scalar field and the
+    right-hand side is a known scalar. Solving this Poisson equation is really the slowest computational step
+    in fluid simulation, for reasons we will see shortly.
+  </p>
+  <p><b>Solving for Pressure</b></p>
+  <p>
+    So how do we solve this particular PDE for \( p \)? Well, we know the value of our candidate velocity field \( \mathbf{u}^\prime \)
+    at all of our grid points, so we can approximately compute the right-hand side of the Poisson equation by applying a discrete
+    version of the divergence everywhere:
+
+    $$
+    \nabla \cdot \mathbf{u}^\prime =
+    \frac{ u_{i+1, j} - u_{i-1, j} }{ 2 \Delta x } +
+    \frac{ v_{i, j+1} - v_{i, j-1} }{ 2 \Delta y }
+    $$
+
+    where \( \Delta x = \Delta y \) is the grid square length and \( \mathbf{u}^\prime = (u, v) \) in 2 dimensions.
+  </p>
+  <p>
+    Then we can use a discrete version of the Laplacian
+
+    $$
+    \nabla^2 p =
+    \frac{ p_{i+1, j} + p_{i-1, j} + p_{i, j+1} + p_{i, j-1} - 4p_{i, j} }{ (\Delta x)^2 }
+    $$
+
+    to transform the whole equation into a linear equation with five unknowns.
+  </p>
+  <p>
+    But really, we are solving the Poisson equation (5) over all of space at once, so for an \( N \times N \) grid,
+    we end up with a system of \( N^2 \) linear equations with exactly \( N^2 \) unknowns! So we end up with
+    the familiar old equation
+
+    $$
+    \mathbf{Ax} = \mathbf{b}
+    $$
+
+    where \( \mathbf{A} \) is a matrix applying the Laplacian operator to the whole grid and \( \mathbf{b} \) is a vector containing
+    the velocity field's divergence at all grid points.
+  </p>
+  <p>
+    There are many off-the-shelf algorithms for solving linear systems exactly. Unfortunately for us, even the fastest algorithms
+    would take around \( O(N^{4.74}) \) time, which for realistic grid sizes is a really dreadful time that nobody should ever have
+    to wait for.
+  </p>
+  <p><b>Solving for Pressure... Efficiently</b></p>
+  <p>
+    If we're going to make a fast simulation, no step should take any more than \( O(N^2) \) time. In fact,
+    for real-time simulation, we shouldn't even have to wait linear time. We have the power of the GPU in our hands. Can we do better?
+  </p>
+  <p>
+    Well, it's not really possible to achieve an exact solution to the linear system efficiently, but we should
+    note that the linear system is already an approximation to the Poisson equation. And it is possible to achieve
+    arbitrarily accurate approximations with iterative methods - which begin with an estimate and improve solution
+    accuracy every iteration - so we can just pick an iterative algorithm and run it
+    until we have something that's "good enough". One particularly simple and easy-to-implement iterative algorithm for solving
+    linear equations is the <a href="https://en.wikipedia.org/wiki/Jacobi_method">Jacobi method</a>.
+  </p>
+  <p>
+    As littleO on mathexchange put it<dt-cite key="1465170"></dt-cite>, the Jacobi method is probably the first thing
+    you would try if you were to invent your own iterative method for solving \( \mathbf{Ax} = \mathbf{b} \). The very first
+    equation in the system is
+    $$
+    A_{11}x_1 + A_{12}x_2 + ... + A_{1n}x_n = b_1
+    $$
+    At the \(k\)th iteration, given some guess \( \mathbf{x}^k \) for the solution \( \mathbf{x} \), we have some error.
+    We can use this error to update our guess for \( x_1 \) as follows:
+    $$
+    x_1^{k+1} = \frac{ b_1 - A_{12}x_2^k - ... - A_{1n}x_n^k }{ A_{11} }
+    $$
+    In Jacobi, our guesses for all elements of \( \mathbf{x} \) are executed in parallel, giving a perfect
+    match for implementation on the GPU.
+  </p>
+  <p>
+    As a remark on the accuracy and convergence of Jacobi, it's worth noting that other, faster-converging solvers can also be
+    implemented on the GPU, including the Conjugate Gradient method and the Multigrid method. On the other hand, depending on
+    the fluid and application context, pressure accuracy may not be as important as advection accuracy or ease of implementation.
+    For fast-moving fluids like smoke and fire, changes in fluid volume aren't as visually apparent as they are for fluids like water
+    <dt-cite key="Crane07"></dt-cite>, and high-quality advection tends to matter more<dt-cite key="Green2014"></dt-cite>.
+  </p>
+  <p><b>Summary: Simulating Navier Stokes</b></p>
+  <p>
+    The math behind Navier-Stokes can be a little bit dense, but at a high-level, simulating a fluid by solving the equations
+    comes down to a few key update procedures on a grid per timestep. For our dye problem, here's our simulation
+    might look:
+    <dt-code block language="javascript">
+      let u = createVelocityGrid();
+      let density = createScalarGrid();
+      let div = createScalarGrid();
+      let p = createScalarGrid();
+
+      while (true) {
+        // Solve for the next velocity field.
+        u = advect(u, u);
+        div = divergence(u);
+
+        for (let i = 0; i < JACOBI_ITERATIONS; i++) {
+          p = updatePressure(p, div);
+        }
+        u = u - gradient(p);
+
+        // Advect dye through the new velocity field.
+        density = advect(u, density);
+      }
+    </dt-code>
+  </p>
+  <h3>1.3 Simulating Navier-Stokes on the GPU</h3>
+  <h3>1.4 Vorticity Confinement</h3>
+  <dt-byline></dt-byline>
+  <h2></h2>
+</dt-article>
+
+<dt-appendix>
+</dt-appendix>
+
+<script type="text/bibliography">
+@InBook{Crane07,
+  author = "Crane, Keenan and Llamas, Ignacio, and Tariq, Sarah",
+  title = "Real Time Simulation and Rendering of 3D Fluids",
+  booktitle = "GPUGems 3",
+  editor = "Hubert Nguyen",
+  chapter = "30",
+  publisher = "Addison-Wesley",
+  year = "2007"
+}
+@inproceedings{horvath2009directable,
+  title={Directable, high-resolution simulation of fire on the GPU},
+  author={Horvath, Christopher and Geiger, Willi},
+  booktitle={ACM Transactions on Graphics (TOG)},
+  volume={28},
+  number={3},
+  pages={41},
+  year={2009},
+  organization={ACM}
+}
+@inproceedings{stam1999stable,
+  title={Stable fluids},
+  author={Stam, Jos},
+  booktitle={Proceedings of the 26th annual conference on Computer graphics and interactive techniques},
+  pages={121--128},
+  year={1999},
+  organization={ACM Press/Addison-Wesley Publishing Co.}
+}
+@inproceedings{nguyen2002physically,
+  title={Physically based modeling and animation of fire},
+  author={Nguyen, Duc Quang and Fedkiw, Ronald and Jensen, Henrik Wann},
+  booktitle={ACM Transactions on Graphics (TOG)},
+  volume={21},
+  number={3},
+  pages={721--728},
+  year={2002},
+  organization={ACM}
+}
+@inproceedings{harris2005fast,
+  title={Fast fluid dynamics simulation on the GPU.},
+  author={Harris, Mark J},
+  booktitle={SIGGRAPH Courses},
+  pages={220},
+  year={2005},
+  url={http://developer.download.nvidia.com/books/HTML/gpugems/gpugems_ch38.html}
+}
+@inproceedings{Aitken:2004:LRV:1103900.1103911,
+ author = {Aitken, Matt and Butler, Greg and Lemmon, Dan and Saindon, Eric and Peters, Dana and Williams, Guy},
+ title = {The Lord of the Rings: The Visual Effects That Brought Middle Earth to the Screen},
+ booktitle = {ACM SIGGRAPH 2004 Course Notes},
+ series = "SIGGRAPH '04",
+ year = {2004},
+ location = {Los Angeles, CA},
+ articleno = {11},
+ url = {http://doi.acm.org.libproxy.berkeley.edu/10.1145/1103900.1103911},
+ doi = {10.1145/1103900.1103911},
+ acmid = {1103911},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+}
+@MISC {1465170,
+  TITLE = {What is the intuition behind matrix splitting methods (Jacobi, Gauss-Seidel)?},
+  AUTHOR = {littleO (https://math.stackexchange.com/users/40119/littleo)},
+  HOWPUBLISHED = {Mathematics Stack Exchange},
+  NOTE = {URL:https://math.stackexchange.com/q/1465170 (version: 2015-10-05)},
+  EPRINT = {https://math.stackexchange.com/q/1465170},
+  URL = {https://math.stackexchange.com/q/1465170}
+}
+@inproceedings{Green2014,
+ author = {Green, Simon},
+ title = {NVIDIA FlameWorks: Real-time Fire Simulation},
+ booktitle = {ACM SIGGRAPH 2014 Computer Animation Festival},
+ series = "SIGGRAPH '14",
+ year = {2014},
+ isbn = {978-1-4503-3054-1},
+ location = {Vancouver, Canada},
+ pages = {1--1},
+ numpages = {1},
+ url = {http://doi.acm.org/10.1145/2633956.2658828},
+ doi = {10.1145/2633956.2658828},
+ acmid = {2658828},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+}
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/contrib/auto-render.min.js" integrity="sha384-kmZOZB5ObwgQnS/DuDg6TScgOiWWBiVt0plIRkZCmE6rDZGrEOQeHM5PcHi+nyqe" crossorigin="anonymous"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        renderMathInElement(document.body);
+    });
+</script>
+</body>
+</html>
