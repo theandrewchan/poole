@@ -20,7 +20,7 @@
 
   <script type="text/front-matter">
     title: "Simulating Fluids, Fire, and Smoke in Real-Time"
-    description: "An overview of math, algorithms, and methods involved in simulating fluids like fire and smoke in real-time."
+    description: "My notes on the math, algorithms, and methods involved in simulating fluids like fire and smoke in real-time."
     authors:
     - Andrew Chan: http://theandrewchan.github.io
     affiliations:
@@ -30,7 +30,7 @@
 <body>
 <dt-article>
   <h1>Simulating Fluids, Fire, and Smoke in Real-Time</h1>
-  <h2>An overview of math, algorithms, and methods involved in simulating fluids like fire and smoke in real-time.</h2>
+  <h2>My notes on the math, algorithms, and methods involved in simulating fluids like fire and smoke in real-time.</h2>
   <dt-byline></dt-byline>
   <p>
     Fire has always been hard to simulate.
@@ -110,7 +110,7 @@
       This is an issue for Euler <a href="https://en.wikipedia.org/wiki/Euler_method#Numerical_stability">in general</a>, making it unsuitable for most situations.
     </li>
   </ol>
-  <p><b>A Partial Differential Equation for Advection</b></p>
+  <p><b>The Advection Partial Differential Equations</b></p>
   <p>
     This whole time we've been implicitly solving a PDE! If we're going to derive a stable method for advection, we'll need to
     first derive an explicit expression for our PDE. Let's start from first principles.
@@ -120,7 +120,7 @@
     is \( \int_{W} \psi dV\). Over time, the change in mass is:
 
     $$
-    \frac{d}{dt} \int_{W} \psi (\mathbf{x}, t) dV = \int_{W} \frac{\delta}{\delta t} \psi (\mathbf{x}, t) dV \\
+    \frac{d}{dt} \int_{W} \psi (\mathbf{x}, t) dV = \int_{W} \frac{\partial}{\partial t} \psi (\mathbf{x}, t) dV \\
     $$
 
     Now, letting \(S\) denote the surface of \(W\) and \( \mathbf{n} \) the outward normal vector defined along the surface, we can examine
@@ -142,13 +142,13 @@
     Can we get rid of the integrals and say something similar for points? By divergence theorem, the above is equivalent to
 
     $$
-    \int_{W} [\frac{\delta \psi}{\delta t} + \nabla \cdot (\psi \mathbf{u})] dV = 0
+    \int_{W} [\frac{\partial \psi}{\partial t} + \nabla \cdot (\psi \mathbf{u})] dV = 0
     $$
 
     Then for a unit subregion \( W = dV \), we can say that
 
     $$
-    \frac{\delta \psi}{\delta t} + \nabla \cdot (\psi \mathbf{u}) = 0 \tag{2}
+    \frac{\partial \psi}{\partial t} + \nabla \cdot (\psi \mathbf{u}) = 0 \tag{2}
     $$
 
     Take a moment to note that the above equation isn't really saying anything new and is essentially a differential form
@@ -160,9 +160,9 @@
 
     $$
     \begin{aligned}
-    &\frac{\delta \psi}{\delta t} = - \nabla \cdot (\psi \mathbf{u}) \\
-    &= - (\frac{\delta}{\delta x} \psi u + \frac{\delta}{\delta y} \psi v) \\
-    &= - (\frac{\delta \psi}{\delta x} u + \frac{\delta u}{\delta x} \psi +  \frac{\delta \psi}{\delta y} v + \frac{\delta v}{\delta y} \psi) \\
+    &\frac{\partial \psi}{\partial t} = - \nabla \cdot (\psi \mathbf{u}) \\
+    &= - (\frac{\partial}{\partial x} \psi u + \frac{\partial}{\partial y} \psi v) \\
+    &= - (\frac{\partial \psi}{\partial x} u + \frac{\partial u}{\partial x} \psi +  \frac{\partial \psi}{\partial y} v + \frac{\partial v}{\partial y} \psi) \\
     &= - (\psi \nabla \cdot \mathbf{u} + \mathbf{u} \cdot \nabla \psi) \\
     &= - \mathbf{u} \cdot \nabla \psi \\
     \end{aligned}
@@ -171,10 +171,10 @@
     Applying our incompressibility constraint \( \nabla \cdot \mathbf{u} = 0 \) at the end yields a scalar PDE, the first of our <b>incompressible flow advection equations</b>:
 
     $$
-    \frac{\delta \psi}{\delta t} = \text{advection} (\mathbf{u}, \psi) = - \mathbf{u} \cdot \nabla \psi \tag{3a}
+    \frac{\partial \psi}{\partial t} = \text{advection} (\mathbf{u}, \psi) = - \mathbf{u} \cdot \nabla \psi \tag{3a}
     $$
     $$
-    \frac{\delta \mathbf{v}}{\delta t} = \text{advection} (\mathbf{u}, \mathbf{v}) = - \mathbf{u} \cdot \nabla \mathbf{v} \tag{3b}
+    \frac{\partial \mathbf{v}}{\partial t} = \text{advection} (\mathbf{u}, \mathbf{v}) = - \mathbf{u} \cdot \nabla \mathbf{v} \tag{3b}
     $$
 
     Eq. 3b for advecting a vector field \( \mathbf{v} \) through our velocity field can be derived similarly to the scalar advection equation.
@@ -183,7 +183,7 @@
   <p>
     Let's look closely at eqn. (3a):
     $$
-    \frac{\delta \psi}{\delta t} = - \mathbf{u} \cdot \nabla \psi
+    \frac{\partial \psi}{\partial t} = - \mathbf{u} \cdot \nabla \psi
     $$
   </p>
   <p>
@@ -215,17 +215,28 @@
     \text{fixed advection here}
     $$
   </p>
+  <dt-byline></dt-byline>
   <h3>1.2 The Navier-Stokes Equations</h3>
   <p>
     So far we've found a model that describes how scalar properties of a fluid evolve over time, assuming the flow is fixed. What about the fluid flow itself -
     how does the velocity field \( \mathbf{u} \) affect itself over time?
   </p>
   <p>
-    The <b>Navier-Stokes equations</b><dt-fn>For a detailed derivation, see Chapter 1.3 of Chorin and Marsden (1993).</dt-fn>
+    The <b>Navier-Stokes equations</b>
+    <dt-fn>For a detailed derivation, see Chapter 1.3 of Chorin and Marsden (1993).</dt-fn>
+    <dt-fn>
+      I would be remiss if I didn't mention the remarkable outstanding math problem associated with Navier-Stokes.
+      These equations, despite having a fairly easy derivation, strong empirical support, and widespread practical usage,
+      are not completely understood theoretically. In fact, basic properties of the solutions to Navier-Stokes have never been
+      proven. The <a href="https://en.wikipedia.org/wiki/Navier%E2%80%93Stokes_existence_and_smoothness">Navier-Stokes existence
+      and smoothness</a> problem asks for a proof that smooth solutions to the equations in 3 dimensions always exist
+      with bounded energy; it is one of the Clay Institute's seven Millenium Prize problems in math - along with P=NP and the Riemann Hypothesis -
+      and there is a $1,000,000 prize for its solution.
+    </dt-fn>
     for incompressible flow define how the velocity at any point in a fluid evolves over time:
 
     $$
-    \frac{\delta \mathbf{u}}{\delta t} =
+    \frac{\partial \mathbf{u}}{\partial t} =
     {\underbrace{ - \mathbf{u} \cdot \nabla \mathbf{u} }_\text{self-advection}} +
     {\underbrace{ \mu^2 \nabla \mathbf{u} }_\text{diffusion}} -
     {\underbrace{ \nabla p }_\text{pressure}} +
@@ -409,10 +420,187 @@
       }
     </dt-code>
   </p>
-  <h3>1.3 Simulating Navier-Stokes on the GPU</h3>
-  <h3>1.4 Vorticity Confinement</h3>
   <dt-byline></dt-byline>
-  <h2></h2>
+  <h3>1.3 Vorticity Confinement</h3>
+  <p>
+    Using a grid to store our velocity field is extremely convenient, but it results in unwanted
+    numerical smoothing whenever we have to interpolate values between grid points.
+    This combined with the relatively coarse approximation of a first-order Semi-Lagrangian advection
+    scheme has the effect of dissipating out turbulent vortices in our flow. Physically, the velocity field
+    loses energy, and the end result is generally overly smooth, "boring" fluid flow.
+  </p>
+  <p>
+    One way to combat lost vorticity is to increase the resolution of our grid, but this isn't really feasible
+    for real-time simulations that have limited computational resources. What we would ideally
+    like to do is find all the small details that get smoothed over each step of the simulation, and <i>amplify</i>
+    them. This process is called vorticity confinement - admittedly, it's not totally realistic, but succeeds in
+    preserving small scale details in more or less physically correct locations <dt-cite key="fedkiw2001visual"></dt-cite>.
+    Indeed, it was originally invented to resolve very complex flow fields in engineering simulations of helicopter blades,
+    where it just wasn't possible to add the number of necessary grid points <dt-cite key="steinhoff1994modification"></dt-cite>.
+  </p>
+  <p>
+    The smallest turbulent features we can find are the vortices centered at each grid point in our simulation.
+    We can measure the intensity of these vortices (the <i>vorticity</i> of them) by taking the curl of \( \mathbf{u} \)
+    at each point, and amplify them by essentially adding a circular flow scaled by vorticity about each point.
+    Mathematically, the vorticity is defined by
+
+    $$
+    \bm{\omega} = \nabla \times \mathbf{u}
+    $$
+
+    For each grid point, we compute a normalized location vector that points to the highest nearby vorticity concentration:
+
+    $$
+    \mathbf{N} = \frac{ \nabla | \bm{\omega} | }{ | \nabla | \bm{\omega} | | }
+    $$
+
+    And finally, we compute the confined vorticity vector field and add it to our flow:
+
+    $$
+    \mathbf{f_{conf}} = \epsilon (\mathbf{N} \times \bm{\omega})
+    $$
+    $$
+    \mathbf{u_{conf}} = \mathbf{u} + \mathbf{f_{conf}}
+    $$
+
+    Here, the confinement constant \( \epsilon > 0 \) is a parameter controlling the amount of small scale detail added
+    back to the flow. Even low confinement levels (around 0-15) can make a huge difference, especially for simulations
+    using Semi-Lagrangian advection schemes, and higher confinement levels can create highly stylized, billowing flows.
+
+    $$
+    \text{vorticity confinement demo here}
+    $$
+  </p>
+  <p><b>Curl-Noise Turbulence</b></p>
+  <p>
+    Curl noise is a method that essentially does the same thing as vorticity confinement, but instead of measuring
+    and amplifying the vorticity of the velocity field, a scalar vorticity field is made from scratch using noise functions.
+    Mathematically, we can combine vorticity confinement and curl-noise turbulence by  synthesizing a random
+    vorticity field
+
+    $$
+    \bm{\phi} = \text{rand} * \mathbf{z}
+    $$
+
+    Then computing our final vorticity field by
+
+    $$
+    \bm{\omega}^* = \bm{\omega} + \bm{\phi}
+    $$
+
+    Fast-moving, highly-turbulent fluids like smoke and fire benefit the most from vorticity confinement and curl noise,
+    and in practice the curl noise field \( \bm{\phi} \) both evolves with time and is also advected by the fluid flow.
+  </p>
+  <dt-byline></dt-byline>
+  <h2>2. Fire Simulation</h2>
+  <p>
+    If you've gotten this far, pat yourself on the back! The methods in the previous section let us efficiently
+    and accurately simulate a very broad array of fluids with varying physical parameters (oil, water, honey), and degrees of accuracy,
+    assuming the fluid domain takes up a fixed space. Those interested in handling varying domains (that is, fluids that occupy different regions
+    within the grid, like a half-full cup of water that sloshes around) will want to explore accounting for different boundary conditions
+    within the grid simulation <dt-fn>I suggest <b>Dynamic Obstacles</b> in
+    <a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch30.html">GPU Gems 3 Chapter 30.2</a>
+    <dt-cite key="Crane07"></dt-cite> for details on adding this to our grid simulation.
+    There are also non grid-based methods, but those are outside scope here. </dt-fn>.
+  </p>
+  <p>
+    Simulating fire and smoke requires a couple additional elements. First, we'll need to add channels representing
+    fuel and temperature to our simulation, and model the combustion of fuel to create heat. Next we'll address how hot pockets
+    of our fluid rise with a thermal buoyancy model, and finally, we'll need to render our flames correctly, taking into account
+    blackbody radiation of the flames, human perception of light, and fire movement.
+  </p>
+  <h3>2.1 A Basic Combustion Model</h3>
+  <p>
+    Chemically, fire is caused by the oxidation of a fuel material in a reaction that releases both heat and light.
+    In our case, we can assume that any fuel in our system has already ignited and is actively adding heat; we won't worry
+    about the problem of unignited fuel.
+  </p>
+  <p>
+    To be more specific, let's define a scalar field \( \rho \) where \( 0 \leq \rho \leq 1 \) represents the density of fuel and
+    another scalar field \( T > 0 \) representing the temperature of the fluid everywhere. At every timestep, temperature is
+    added to the system by the fuel, which burns at a given burn temperature:
+
+    $$
+    T^\prime = \text{max} ( T, \rho * T_{\text{burn}} )
+    $$
+
+    Of course, temperature isn't static - heat diffuses from hot to cold areas, and with fluids in particular, large-scale movements
+    of molecules transport heat. The combination of these 2 processes defines <a href="https://en.wikipedia.org/wiki/Convection">heat convection</a>,
+    and conveniently, we already have a mathematical model for how it works - advection! Simulation-wise, we advect our temperature
+    field along our velocity field. Since any reacting molecules are also moved by the fluid, we should advect fuel as well.
+    The heat itself also affects the movement of the fluid - we'll see how to handle this shortly.
+  </p>
+  <p>
+    Furthermore, hot molecules radiate off temperature as light<dt-fn>This is called blackbody radiation, and we'll return
+    to it when rendering the fire color. The soot particles present in most fire radiate like ideal blackbodies.</dt-fn> according to the
+    <a href="https://en.wikipedia.org/wiki/Stefan%E2%80%93Boltzmann_law">Stefan-Boltzmann Law</a>,
+    in a quintic equation <dt-cite key="nguyen2002physically"></dt-cite>:
+
+    $$
+    T^\prime = T - \sigma_{\text{cool}} ( \frac{T}{T_{\text{max}}} )^4 * \Delta t
+    $$
+
+    Here, \( \sigma_{\text{cool}} \) is the cooling rate parameter. For a physically correct simulation, we would set it to the Stefan-Boltzmann constant,
+    but for a graphical simulation, it's nice for the artist to be able to control the rate of cooling.
+  </p>
+  <p>
+    To complete our combustion model, note that our fuel is always burning (we can imagine it as the density of ionized gas particles
+    that give off thermal energy and return to a lower energy state), so every timestep we dissipate it by some given burn
+    rate \( \gamma_{fuel} \):
+    $$
+    \rho^\prime = \rho (1 - \gamma_{fuel})^{\Delta t}
+    $$
+  </p>
+  <h3>2.2 Thermal Buoyancy</h3>
+  <p>
+    So far, our temperature field doesn't do anything to our fluid flow. But it should - hot pockets of air should expand and rise, and cooler pockets should fall.
+    We can model this with a thermal buoyancy force. Since we're assuming incompressibility, we won't actually handle air expansion, but the fluid flow
+    should experience an upward force depending on temperature:
+
+    $$
+    \mathbf{u}^\prime = \mathbf{u} + (\beta T \Delta t) \mathbf{j}
+    $$
+
+    Here, \( \beta \) is a given positive buoyancy constant, and \( \mathbf{j} \) is the upward unit vector.
+  </p>
+  <p>
+    Adding a combustion model and thermal buoyancy force gives us a fantastic simulator for a decidedly "fire-like" fluid -
+    with the right values of buoyancy and cooling, we can get bulky, billowing plumes of material.
+    Not exactly flames, but very similar to smoke. Tap and drag in the simulation below to inject some combusting fuel:
+
+    $$
+    \text{smoke simulation here}
+    $$
+  </p>
+  <h3>2.3 Fire Rendering</h3>
+  <p>
+    Fire is a <a href="http://old.cescg.org/CESCG-2000/SMaierhofer/node6.html">participating medium</a>.
+    What this means is that it can absorb, emit, and scatter light. Fire in particular emits light through blackbody radiation, making it
+    more complex than other scattering media like fog or smoke.
+  </p>
+  <p>
+    We won't cover light scattering in these notes, but interested readers should refer
+    to 5.1 in <a href="http://physbam.stanford.edu/~fedkiw/papers/stanford2002-02.pdf">Nguyen et al. 2002</a> <dt-cite key="nguyen2002physically"></dt-cite>. We will cover realistic rendering of
+    the light emitted by our flames and the use of various postprocessing techniques to achieve photorealistic fire.
+  </p>
+  <p><b>Blackbody Radiation</b></p>
+  <p>
+    <a href="https://en.wikipedia.org/wiki/Planck%27s_law">Planck's Law</a> describes the spectral density of light radiated by
+    a black body at a given temperature \( T \):
+
+    $$
+    M(\lambda, T) = \frac{ c_1 }{ \lambda^5 } \frac{ 1 }{ \exp{ \frac{c_2}{\lambda T} } - 1 }
+    $$
+
+    where
+    $$
+    c_1 = 2 \pi h c^2 \\
+    c_2 = \frac{hc}{k}
+    $$
+
+    and \(h\), \(c\), and \(k\) are Planck's constant, the speed of light, and Boltzmann's constant, respectively.
+  </p>
+  <p><b>Postprocessing Effects</b></p>
 </dt-article>
 
 <dt-appendix>
@@ -501,6 +689,34 @@
  acmid = {2658828},
  publisher = {ACM},
  address = {New York, NY, USA},
+}
+@inproceedings{fedkiw2001visual,
+  title={Visual simulation of smoke},
+  author={Fedkiw, Ronald and Stam, Jos and Jensen, Henrik Wann},
+  booktitle={Proceedings of the 28th annual conference on Computer graphics and interactive techniques},
+  pages={15--22},
+  year={2001},
+  organization={ACM}
+}
+@article{steinhoff1994modification,
+  title={Modification of the Euler equations for ‘‘vorticity confinement’’: Application to the computation of interacting vortex rings},
+  author={Steinhoff, John and Underhill, David},
+  journal={Physics of Fluids},
+  volume={6},
+  number={8},
+  pages={2738--2744},
+  year={1994},
+  publisher={AIP}
+}
+@inproceedings{bridson2007curl,
+  title={Curl-noise for procedural fluid flow},
+  author={Bridson, Robert and Houriham, Jim and Nordenstam, Marcus},
+  booktitle={ACM Transactions on Graphics (ToG)},
+  volume={26},
+  number={3},
+  pages={46},
+  year={2007},
+  organization={ACM}
 }
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/contrib/auto-render.min.js" integrity="sha384-kmZOZB5ObwgQnS/DuDg6TScgOiWWBiVt0plIRkZCmE6rDZGrEOQeHM5PcHi+nyqe" crossorigin="anonymous"></script>
