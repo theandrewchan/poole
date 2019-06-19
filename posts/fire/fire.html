@@ -33,14 +33,14 @@
   <h2>My notes on the math, algorithms, and methods involved in simulating fluids like fire and smoke in real-time.</h2>
   <dt-byline></dt-byline>
   <p>
-    Fire has always been hard to simulate.
+    Fire is hard to simulate.
     As a fluid, it shares the challenging dynamics of oil, water, and smoke, but with the added
     complexity of much higher turbulence, detail, and speeds. In particular, the
-    rapid thermal expansion of hot gases that characterize flames need to be simulated at very high
-    resolution to be accurate, so real-time simulation of fire has long been computationally infeasible.
+    rapid thermal expansion of hot gases that characterize flames need to be simulated at high
+    resolutions to be accurate, so real-time simulation of fire was considered computationally infeasible for a long time.
   </p>
   <p>
-    As a result, many approaches to animating believable, realistic fire have focused on using various shortcuts to
+    As a result, past approaches to animating believable, realistic fire often used various shortcuts to
     approximate or bypass modeling its dynamics. Even in movies - where visual effects can be pre-rendered
     and simulation speed is not as much of an issue - physically-based fire simulation only recently
     became common. For instance, <i>The Lord of the Rings</i> trilogy <dt-cite key="Aitken:2004:LRV:1103900.1103911"></dt-cite> used sprite-based techniques as an
@@ -51,7 +51,7 @@
   </p>
   <p>
     On the other hand, the explosion in GPU computing power in the last decade has made fast fluid simulation viable and even easy.
-    As it turns out, modeling fluid dynamics is embarrassingly parallelizable for most practical purposes, and the basic
+    As it turns out, modeling fluid dynamics is <a href="https://en.wikipedia.org/wiki/Embarrassingly_parallel">embarrassingly parallelizable</a> for most practical purposes, and the basic
     algorithms are straightforward to implement on the GPU, with Harris's 2005 chapter in <i>GPU Gems</i> offering a great
     basic tutorial <dt-cite key="harris2005fast"></dt-cite>. In 2009, Industrial Light and Magic's awesome fire in
     <i>Harry Potter</i> used the GPU for modeling and rendering, and was both fast and directable for the first time <dt-cite key="horvath2009directable"></dt-cite>.
